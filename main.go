@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strings"
 	"text/template"
-
+	"flag"
 	"./transform"
 )
 
@@ -111,18 +111,45 @@ func TravelHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	buffer, err := ioutil.ReadFile("./config/site.json")
-	if err != nil {
-		panic(err)
-	}
 
-	err = json.Unmarshal(buffer, &SiteConfig)
+	protocol:=flag.String("protocol", "http", "protocol")
+	domain:=flag.String("domain", "localhost", "domain")
+	listen:=flag.String("listen", "0.0.0.0:9100", "listen address")
+	path:=flag.String("path", "/access/", "access path")
+	accessaddress:=flag.String("accessaddress", "localhost:9100", "access address")
+
+	var config = flag.String("config", "", "Config file")
+
+	flag.Parse()
+
+	SiteConfig["Protocol"]=*protocol
+	SiteConfig["Domain"]=*domain
+	SiteConfig["ListenAddress"]=*listen
+	SiteConfig["AccessPath"]=*path
+	SiteConfig["AccessAddress"]=*accessaddress
+
 	SiteConfig["RootURI"] = SiteConfig["Protocol"].(string) + "://" +
 		SiteConfig["AccessAddress"].(string)
 	SiteConfig["FullURI"] = SiteConfig["RootURI"].(string) +
-		SiteConfig["AccessPath"].(string)
+	SiteConfig["AccessPath"].(string)
 
-	err = g_transform.Init(SiteConfig["FullURI"].(string))
+
+	if *config != "" {
+		buffer, err := ioutil.ReadFile("./config/site.json")
+		if err != nil {
+			log.Println(err)
+		} else {
+
+			err = json.Unmarshal(buffer, &SiteConfig)
+			SiteConfig["RootURI"] = SiteConfig["Protocol"].(string) + "://" +
+			SiteConfig["AccessAddress"].(string)
+			SiteConfig["FullURI"] = SiteConfig["RootURI"].(string) +
+			SiteConfig["AccessPath"].(string)
+		}
+	}
+
+
+	err := g_transform.Init(SiteConfig["FullURI"].(string))
 	if err != nil {
 		log.Println(err)
 		return
